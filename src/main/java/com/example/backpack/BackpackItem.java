@@ -40,9 +40,20 @@ public class BackpackItem extends Item {
                     }
 
                     // Set custom model data to show dyed texture
-                    // Note: Using a workaround due to NBT API compatibility
-                    // The dye effect will be visual only for now
-                    System.out.println("Backpack: Dye applied (visual effect pending NBT implementation)");
+                    try {
+                        // Try to use the getOrCreateTag method if it exists
+                        if (stack.getClass().getMethod("getOrCreateTag") != null) {
+                            java.lang.reflect.Method getOrCreateTag = stack.getClass().getMethod("getOrCreateTag");
+                            Object tag = getOrCreateTag.invoke(stack);
+                            java.lang.reflect.Method putInt = tag.getClass().getMethod("putInt", String.class, int.class);
+                            putInt.invoke(tag, "dyed", 1);
+                            System.out.println("Backpack: Dye predicate set using reflection");
+                        } else {
+                            System.out.println("Backpack: getOrCreateTag method not found");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Backpack: Failed to set dye predicate: " + e.getMessage());
+                    }
 
                     System.out.println("Backpack: Applied dye color " + dye.getDyeColor().getName());
 

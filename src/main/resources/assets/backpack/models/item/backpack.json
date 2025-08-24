@@ -6,7 +6,7 @@
   "overrides": [
     {
       "predicate": {
-        "custom_model_data": 1
+        "dyed": 1
       },
       "model": "backpack:item/backpack_dyed"
     }
