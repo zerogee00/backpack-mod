@@ -14,6 +14,18 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import java.util.List;
 
+public class BackpackItem extends Item implements DyeableLeatherItem {
+    public BackpackItem(Properties properties) {
+        super(properties);
+    }
+
+    @Override
+    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
+        super.appendHoverText(stack, level, tooltip, flag);
+        tooltip.add(Component.translatable("tooltip.backpack.dye_instruction"));
+    }
+}
+
 public class BackpackItem extends Item {
     public BackpackItem(Properties props) {
         super(props);
