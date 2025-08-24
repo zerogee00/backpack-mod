@@ -39,6 +39,11 @@ public class BackpackItem extends Item {
                         otherHand.shrink(1);
                     }
 
+                    // Set custom model data to show dyed texture
+                    // Note: Using a workaround due to NBT API compatibility
+                    // The dye effect will be visual only for now
+                    System.out.println("Backpack: Dye applied (visual effect pending NBT implementation)");
+
                     System.out.println("Backpack: Applied dye color " + dye.getDyeColor().getName());
 
                     // Send message to player
@@ -58,6 +63,7 @@ public class BackpackItem extends Item {
                 otherHand.getItem().toString().contains("bucket")) {
                 if (!level.isClientSide) {
                     // Clear dye color (basic implementation for now)
+                    // Note: Dye clearing effect pending NBT implementation
                     System.out.println("Backpack: Clearing dye color with water");
                     player.sendSystemMessage(Component.literal("Backpack dye color cleared!"));
                 }
