@@ -1,0 +1,234 @@
+{
+  "credit": "backpack wear base",
+  "texture_size": [
+    32,
+    32
+  ],
+  "textures": {
+    "base": "backpack:textures/entity/backpack_base"
+  },
+  "elements": [
+    {
+      "from": [
+        4,
+        4,
+        6
+      ],
+      "to": [
+        12,
+        14,
+        14
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            10,
+            8,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "down": {
+          "uv": [
+            8,
+            10,
+            16,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        }
+      }
+    },
+    {
+      "from": [
+        5.5,
+        14,
+        10.5
+      ],
+      "to": [
+        6.5,
+        24,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            10,
+            8,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "down": {
+          "uv": [
+            8,
+            10,
+            16,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        }
+      }
+    },
+    {
+      "from": [
+        9.5,
+        14,
+        10.5
+      ],
+      "to": [
+        10.5,
+        24,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "east": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "west": {
+          "uv": [
+            8,
+            0,
+            16,
+            10
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            10,
+            8,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        },
+        "down": {
+          "uv": [
+            8,
+            10,
+            16,
+            16
+          ],
+          "texture": "#base",
+          "tintindex": 0
+        }
+      }
+    }
+  ]
+}

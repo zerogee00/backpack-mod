@@ -1,0 +1,15 @@
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    maven { url = "https://maven.neoforged.net/releases" }
+  }
+}
+dependencyResolutionManagement {
+  repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+  repositories {
+    mavenCentral()
+    maven { url = "https://maven.neoforged.net/releases" }
+    maven { url = "https://maven.theillusivec4.top/" }
+  }
+}
+rootProject.name = "backpack"

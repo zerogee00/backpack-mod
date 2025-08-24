@@ -1,0 +1,59 @@
+# This is an example mods.toml file. It contains data for the NeoForge mod loader.
+# It is not runnable as-is and needs to be filled in with your mod data.
+# Remove the '#' comment markers when you fill in the file.
+# There's a guide here: https://neoforged.net/docs/misc/mods.toml/
+
+# The mod loader type - this is usually 'javafml' for Java mods
+modLoader="javafml"
+# The mod loader version - this should be compatible with the version of NeoForge you're using
+loaderVersion="[4.0.31,)"
+# The license for your mod. This is mandatory metadata.
+license="MIT"
+
+# A URL for the "homepage" for this mod, displayed in the mod UI
+#homepageURL="https://change.me.to.your.mods.homepage"
+# If you have a mod logo, you can specify it here
+#logoFile="examplemod.png"
+# A URL for the "issues" page for this mod, displayed in the mod UI
+#issuesURL="https://change.me.to.your.mods.issues.url"
+
+# The mod metadata. The modId must be unique among all mods.
+[[mods]]
+# The unique mod identifier for the mod. Must be lowercase in English locale. Must fit the regex [a-z][a-z0-9_]{1,63}
+# Must match the String constant located in the main mod class annotated with @Mod.
+modId="backpack"
+# The human-readable display name for the mod.
+displayName="Backpack"
+# The mod version. See https://semver.org/
+version="0.1.0"
+# The mod description. This is a simple multiline text string that is used for display purposes in the mod list.
+description='A simple backpack with crafting grid and storage.'
+# A list of authors for the mod.
+authors="You"
+
+# Dependency information
+[[dependencies.backpack]]
+# The modId of the dependency
+modId="neoforge"
+# Is this dependency mandatory or not? If not, ordering cannot be guaranteed
+mandatory=true
+# The version range of the dependency
+versionRange="[21.1.77,22)"
+# The ordering of this dependency. BEFORE, AFTER, or NONE if not specified. Default is NONE.
+ordering="NONE"
+# The side this dependency is applied on. BOTH, CLIENT, or SERVER. Default is BOTH.
+side="BOTH"
+
+[[dependencies.backpack]]
+# The modId of the dependency
+modId="minecraft"
+# Is this dependency mandatory or not? If not, ordering cannot be guaranteed
+mandatory=true
+# The version range of the dependency
+versionRange="[1.21.1,1.22)"
+# The ordering of this dependency. BEFORE, AFTER, or NONE if not specified. Default is NONE.
+ordering="NONE"
+# The side this dependency is applied on. BOTH, CLIENT, or SERVER. Default is BOTH.
+side="BOTH"
+
+

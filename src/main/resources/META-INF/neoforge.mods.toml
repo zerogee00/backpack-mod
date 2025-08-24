@@ -1,0 +1,45 @@
+# This is the mods.toml file for the backpack mod
+# Each mod provides a mod file. This defines the mod's metadata.
+
+# A file name for mods.toml is mods.toml or neoforge.mods.toml
+modLoader = "javafml" #mandatory
+
+# The version range of the mod loader version that this mod is compatible with
+loaderVersion = "[4.0.31,)" #mandatory, "This is typically bumped every Minecraft version by Forge. See our download page for lists of versions."
+
+# A URL to refer people to when problems occur with this mod
+issuesURL = "https://github.com/user/backpack/issues" #optional
+
+# The license this mods.toml is shipped under. Used to display in the license screen in the main menu.
+license = "MIT" #mandatory
+
+# The mods below are defined in individual [[mods]] blocks
+[[mods]] # Mod definitions
+modId = "backpack" #mandatory
+version = "0.1.0" #mandatory
+displayName = "Backpack" #mandatory
+authors = "You" #optional
+description = '''
+A simple backpack with crafting grid and storage.
+'''
+
+[[dependencies.backpack]] # A dependency on neoforge
+modId = "neoforge" #mandatory
+type = "required" #mandatory
+versionRange = "[21.1.77,22)" # The range of versions
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.backpack]] # A dependency on minecraft
+modId = "minecraft"
+type = "required"
+versionRange = "[1.21.1,1.22)"
+ordering = "NONE"
+side = "BOTH"
+
+# [[dependencies.backpack]] # Required dependency on curios
+# modId = "curios"
+# type = "required"
+# versionRange = "[9.2.0,)"
+# ordering = "AFTER"
+# side = "BOTH"
