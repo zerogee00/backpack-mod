@@ -26,4 +26,5 @@ replay_pid*
 .gradle/*
 .vscode/
 
-.DS_Store
+# macOS system files - ignore in any directory
+**/.DS_Store
