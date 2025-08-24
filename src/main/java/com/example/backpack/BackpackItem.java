@@ -110,7 +110,7 @@ public class BackpackItem extends Item {
         // For now, just log that we're trying to save
         // This is a placeholder that will be enhanced with proper NBT support
         System.out.println("Saving backpack storage (persistence not yet implemented)");
-        
+
         // TODO: Implement proper NBT persistence when we resolve the API compatibility issues
         // The current Minecraft version has different NBT methods than what we're trying to use
     }
