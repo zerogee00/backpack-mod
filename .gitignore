@@ -23,8 +23,47 @@
 hs_err_pid*
 replay_pid*
 
-.gradle/*
+# Build directories
+.gradle/
+build/
+out/
+bin/
+
+# IDE files
 .vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
 
 # macOS system files - ignore in any directory
 **/.DS_Store
+
+# Minecraft development directories
+run/
+logs/
+crash-reports/
+debug/
+downloads/
+defaultconfigs/
+mods/
+resourcepacks/
+saves/
+usercache.json
+usernamecache.json
+options.txt
+
+# Gradle wrapper (optional - some projects include this, some don't)
+# gradle/wrapper/gradle-wrapper.jar
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
