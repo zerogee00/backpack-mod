@@ -41,6 +41,9 @@ public class BackpackMod {
 
         // Add backpack to TOOLS creative tab
         modBus.addListener(this::addToCreativeTabs);
+        
+        // Register the dye event handler
+        new DyeOnUseHandler();
     }
 
     private void addToCreativeTabs(net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent event) {

@@ -14,18 +14,6 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.ChatFormatting;
 import java.util.List;
 
-public class BackpackItem extends Item implements DyeableLeatherItem {
-    public BackpackItem(Properties properties) {
-        super(properties);
-    }
-
-    @Override
-    public void appendHoverText(ItemStack stack, Level level, List<Component> tooltip, TooltipFlag flag) {
-        super.appendHoverText(stack, level, tooltip, flag);
-        tooltip.add(Component.translatable("tooltip.backpack.dye_instruction"));
-    }
-}
-
 public class BackpackItem extends Item {
     public BackpackItem(Properties props) {
         super(props);
@@ -43,7 +31,7 @@ public class BackpackItem extends Item {
 
             if (otherHand.getItem() instanceof DyeItem) {
                 if (!level.isClientSide) {
-                    // Apply dye color (without NBT persistence for now)
+                    // Apply dye color (basic implementation for now)
                     DyeItem dye = (DyeItem) otherHand.getItem();
 
                     // Consume one dye
@@ -69,6 +57,7 @@ public class BackpackItem extends Item {
             if (otherHand.getItem().toString().contains("water_bucket") ||
                 otherHand.getItem().toString().contains("bucket")) {
                 if (!level.isClientSide) {
+                    // Clear dye color (basic implementation for now)
                     System.out.println("Backpack: Clearing dye color with water");
                     player.sendSystemMessage(Component.literal("Backpack dye color cleared!"));
                 }
@@ -106,5 +95,23 @@ public class BackpackItem extends Item {
         tooltipComponents.add(Component.translatable("item.backpack.tooltip.clear_dye")
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC));
+    }
+
+    // Helper method to get backpack storage from NBT
+    public static net.minecraft.world.SimpleContainer getBackpackStorage(ItemStack stack) {
+        // For now, return a fresh container - we'll implement persistence when we resolve the NBT API
+        // This is a placeholder that will be enhanced with proper NBT support
+        System.out.println("Getting backpack storage (persistence not yet implemented)");
+        return new net.minecraft.world.SimpleContainer(27);
+    }
+
+    // Helper method to save backpack storage to NBT
+    public static void saveBackpackStorage(ItemStack stack, net.minecraft.world.SimpleContainer container) {
+        // For now, just log that we're trying to save
+        // This is a placeholder that will be enhanced with proper NBT support
+        System.out.println("Saving backpack storage (persistence not yet implemented)");
+        
+        // TODO: Implement proper NBT persistence when we resolve the API compatibility issues
+        // The current Minecraft version has different NBT methods than what we're trying to use
     }
 }
