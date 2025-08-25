@@ -1,6 +1,7 @@
 package com.example.backpack.menu;
 
 import com.example.backpack.BackpackMod;
+import com.example.backpack.BackpackItem;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
@@ -67,23 +68,31 @@ public class BackpackMenu extends AbstractContainerMenu {
   private final Container craftMatrix = new SimpleContainer(9);
   private final Container craftResult = new SimpleContainer(1);
 
-  // the backpack’s 27-slot storage (swap for your block entity/container)
+  // the backpack's 27-slot storage
   private final Container backpackInv;
 
   private final Player player;
   private final Level level;
+  private final ItemStack backpackStack;
+  private final int backpackSlot; // Track which slot contains the backpack
 
   public BackpackMenu(int id, Inventory playerInv) {
-    this(id, playerInv,
-         new SimpleContainer(
-             PACK_COUNT)); // fallback if you’re opening from an item
+    this(id, playerInv, ItemStack.EMPTY);
   }
 
-  public BackpackMenu(int id, Inventory playerInv, Container backpackStorage) {
+  public BackpackMenu(int id, Inventory playerInv, ItemStack backpackStack) {
+    this(id, playerInv, backpackStack, null);
+  }
+
+  public BackpackMenu(int id, Inventory playerInv, ItemStack backpackStack, net.minecraft.world.InteractionHand hand) {
     super(BackpackMod.BACKPACK_MENU.get(), id); // Use our custom menu type
     this.player = playerInv.player;
     this.level = player.level();
-    this.backpackInv = backpackStorage;
+    this.backpackStack = backpackStack;
+    this.backpackSlot = hand != null ? (hand == net.minecraft.world.InteractionHand.MAIN_HAND ? playerInv.selected : -1) : -1;
+
+    // Load backpack storage from the item stack
+    this.backpackInv = BackpackItem.getBackpackStorage(backpackStack);
 
     this.addSlot(new Slot(this.craftResult, RESULT_SLOT, RESULT_X, RESULT_Y) {
       @Override
@@ -160,8 +169,25 @@ public class BackpackMenu extends AbstractContainerMenu {
     this.craftResult.clearContent();
     if (!player.level().isClientSide) {
       this.clearContainer(player, this.craftMatrix);
+
+      // Save backpack storage back to the original stack in player's inventory
+      if (this.backpackSlot >= 0 && this.backpackSlot < player.getInventory().getContainerSize()) {
+        ItemStack originalStack = player.getInventory().getItem(this.backpackSlot);
+        if (!originalStack.isEmpty() && originalStack.getItem() instanceof BackpackItem) {
+          BackpackItem.saveBackpackStorage(originalStack, this.backpackInv);
+          System.out.println("Backpack: Saved storage to slot " + this.backpackSlot);
+        }
+      } else {
+        // Fallback: try to save to the backpackStack reference
+        if (!this.backpackStack.isEmpty()) {
+          BackpackItem.saveBackpackStorage(this.backpackStack, this.backpackInv);
+          System.out.println("Backpack: Saved storage to stack reference");
+        }
+      }
     }
   }
+
+
 
   @Override
   public ItemStack quickMoveStack(Player player, int clickedIndex) {
@@ -209,8 +235,12 @@ public class BackpackMenu extends AbstractContainerMenu {
   // Provider class for opening the menu
   public static class Provider implements MenuProvider {
     private final ItemStack backpackStack;
+    private final net.minecraft.world.InteractionHand hand;
 
-    public Provider(ItemStack stack) { this.backpackStack = stack.copy(); }
+    public Provider(ItemStack stack, net.minecraft.world.InteractionHand hand) {
+      this.backpackStack = stack;
+      this.hand = hand;
+    }
 
     @Override
     public Component getDisplayName() {
@@ -220,7 +250,7 @@ public class BackpackMenu extends AbstractContainerMenu {
     @Override
     public AbstractContainerMenu createMenu(int id, Inventory playerInv,
                                             Player player) {
-      return new BackpackMenu(id, playerInv);
+      return new BackpackMenu(id, playerInv, this.backpackStack, this.hand);
     }
   }
 }

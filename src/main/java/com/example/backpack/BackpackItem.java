@@ -87,7 +87,7 @@ public class BackpackItem extends Item {
 
         if (!level.isClientSide && player instanceof ServerPlayer sp) {
             System.out.println("Backpack: Opening backpack menu for server player");
-            NetworkHandler.openScreen(sp, new BackpackMenu.Provider(stack), buf -> {});
+            NetworkHandler.openScreen(sp, new BackpackMenu.Provider(stack, hand), buf -> {});
         }
 
         return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
@@ -145,22 +145,38 @@ public class BackpackItem extends Item {
         }
     }
 
-    // Helper method to get backpack storage from NBT
+    // Helper method to get backpack storage from data components
     public static net.minecraft.world.SimpleContainer getBackpackStorage(ItemStack stack) {
-        // For now, return a fresh container - we'll implement persistence when we resolve the NBT API
-        // This is a placeholder that will be enhanced with proper NBT support
-        System.out.println("Getting backpack storage (persistence not yet implemented)");
-        return new net.minecraft.world.SimpleContainer(27);
+        net.minecraft.world.SimpleContainer container = new net.minecraft.world.SimpleContainer(27);
+
+        // Load items from data component if they exist
+        if (stack.has(ModDataComponents.BACKPACK_INVENTORY.get())) {
+            List<ItemStack> items = stack.get(ModDataComponents.BACKPACK_INVENTORY.get());
+            if (items != null) {
+                for (int i = 0; i < Math.min(items.size(), 27); i++) {
+                    ItemStack item = items.get(i);
+                    if (item != null && !item.isEmpty()) {
+                        container.setItem(i, item);
+                    }
+                }
+            }
+        }
+
+        return container;
     }
 
-    // Helper method to save backpack storage to NBT
-    public static void saveBackpackStorage(ItemStack stack, net.minecraft.world.SimpleContainer container) {
-        // For now, just log that we're trying to save
-        // This is a placeholder that will be enhanced with proper NBT support
-        System.out.println("Saving backpack storage (persistence not yet implemented)");
+    // Helper method to save backpack storage to data components
+    public static void saveBackpackStorage(ItemStack stack, net.minecraft.world.Container container) {
+        List<ItemStack> items = new java.util.ArrayList<>();
 
-        // TODO: Implement proper NBT persistence when we resolve the API compatibility issues
-        // The current Minecraft version has different NBT methods than what we're trying to use
+        // Convert container items to list
+        for (int i = 0; i < container.getContainerSize(); i++) {
+            ItemStack item = container.getItem(i);
+            items.add(item.copy());
+        }
+
+        // Save to data component
+        stack.set(ModDataComponents.BACKPACK_INVENTORY.get(), items);
     }
 
     // Helper method to check if backpack is dyed
