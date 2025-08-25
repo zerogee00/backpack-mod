@@ -1,14 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "backpack:item/backpack"
-  },
-  "overrides": [
-    {
-      "predicate": {
-        "dyed": 1
-      },
-      "model": "backpack:item/backpack_dyed"
-    }
-  ]
+    "layer0": "backpack:item/backpack",
+    "layer1": "backpack:item/backpack_dyeable"
+  }
 }

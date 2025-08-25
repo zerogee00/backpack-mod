@@ -31,7 +31,7 @@ public class BackpackItem extends Item {
 
             if (otherHand.getItem() instanceof DyeItem) {
                 if (!level.isClientSide) {
-                    // Apply dye color (basic implementation for now)
+                    // Apply dye color using the new data component system
                     DyeItem dye = (DyeItem) otherHand.getItem();
 
                     // Consume one dye
@@ -39,23 +39,12 @@ public class BackpackItem extends Item {
                         otherHand.shrink(1);
                     }
 
-                    // Set custom model data to show dyed texture
-                    try {
-                        // Try to use the getOrCreateTag method if it exists
-                        if (stack.getClass().getMethod("getOrCreateTag") != null) {
-                            java.lang.reflect.Method getOrCreateTag = stack.getClass().getMethod("getOrCreateTag");
-                            Object tag = getOrCreateTag.invoke(stack);
-                            java.lang.reflect.Method putInt = tag.getClass().getMethod("putInt", String.class, int.class);
-                            putInt.invoke(tag, "dyed", 1);
-                            System.out.println("Backpack: Dye predicate set using reflection");
-                        } else {
-                            System.out.println("Backpack: getOrCreateTag method not found");
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Backpack: Failed to set dye predicate: " + e.getMessage());
-                    }
+                    // Get the vanilla dye RGB color and store it in the data component
+                    int rgb = dye.getDyeColor().getTextureDiffuseColor();
+                    stack.set(ModDataComponents.BACKPACK_COLOR.get(), rgb);
 
-                    System.out.println("Backpack: Applied dye color " + dye.getDyeColor().getName());
+                    // Set the dyed flag to true
+                    stack.set(ModDataComponents.BACKPACK_DYED.get(), true);
 
                     // Send message to player
                     player.sendSystemMessage(Component.literal("Backpack dyed with " + dye.getDyeColor().getName() + " dye!"));
@@ -73,10 +62,17 @@ public class BackpackItem extends Item {
             if (otherHand.getItem().toString().contains("water_bucket") ||
                 otherHand.getItem().toString().contains("bucket")) {
                 if (!level.isClientSide) {
-                    // Clear dye color (basic implementation for now)
-                    // Note: Dye clearing effect pending NBT implementation
-                    System.out.println("Backpack: Clearing dye color with water");
-                    player.sendSystemMessage(Component.literal("Backpack dye color cleared!"));
+                    // Clear dye color by removing the data component
+                    if (stack.has(ModDataComponents.BACKPACK_COLOR.get())) {
+                        stack.remove(ModDataComponents.BACKPACK_COLOR.get());
+
+                        // Clear the dyed flag
+                        stack.remove(ModDataComponents.BACKPACK_DYED.get());
+
+                        player.sendSystemMessage(Component.literal("Backpack dye color cleared!"));
+                    } else {
+                        player.sendSystemMessage(Component.literal("Backpack is not dyed!"));
+                    }
                 }
                 return InteractionResultHolder.sidedSuccess(stack, level.isClientSide);
             }
@@ -112,6 +108,41 @@ public class BackpackItem extends Item {
         tooltipComponents.add(Component.translatable("item.backpack.tooltip.clear_dye")
                 .withStyle(ChatFormatting.GRAY)
                 .withStyle(ChatFormatting.ITALIC));
+
+        // Show current dye color if dyed
+        if (stack.has(ModDataComponents.BACKPACK_COLOR.get())) {
+            Integer color = stack.get(ModDataComponents.BACKPACK_COLOR.get());
+            if (color != null) {
+                // Convert RGB to a readable color name
+                String colorName = getColorNameFromRGB(color);
+                tooltipComponents.add(Component.literal("Dyed: " + colorName)
+                        .withStyle(ChatFormatting.GRAY));
+            }
+        }
+    }
+
+    // Helper method to get color name from RGB value
+    private String getColorNameFromRGB(int rgb) {
+        // This is a simple mapping - you could make this more sophisticated
+        switch (rgb) {
+            case 0xFFFFFF: return "White";
+            case 0xFF8F00: return "Orange";
+            case 0xC74EBD: return "Magenta";
+            case 0x3F7FBF: return "Light Blue";
+            case 0xFED83D: return "Yellow";
+            case 0x80C71F: return "Lime";
+            case 0xF38BAA: return "Pink";
+            case 0x474F52: return "Gray";
+            case 0x9D9D97: return "Light Gray";
+            case 0x169C9C: return "Cyan";
+            case 0x9932CC: return "Purple";
+            case 0x3C44AA: return "Blue";
+            case 0x825432: return "Brown";
+            case 0x5E7C16: return "Green";
+            case 0xB02E26: return "Red";
+            case 0x1D1C21: return "Black";
+            default: return "Custom";
+        }
     }
 
     // Helper method to get backpack storage from NBT
@@ -130,5 +161,20 @@ public class BackpackItem extends Item {
 
         // TODO: Implement proper NBT persistence when we resolve the API compatibility issues
         // The current Minecraft version has different NBT methods than what we're trying to use
+    }
+
+    // Helper method to check if backpack is dyed
+    public static boolean isDyed(ItemStack stack) {
+        return stack.has(ModDataComponents.BACKPACK_COLOR.get());
+    }
+
+    // Helper method to get dye color
+    public static Integer getDyeColor(ItemStack stack) {
+        return stack.get(ModDataComponents.BACKPACK_COLOR.get());
+    }
+
+    // Helper method to clear dye color
+    public static void clearDyeColor(ItemStack stack) {
+        stack.remove(ModDataComponents.BACKPACK_COLOR.get());
     }
 }

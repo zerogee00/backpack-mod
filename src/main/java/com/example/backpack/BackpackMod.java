@@ -38,6 +38,7 @@ public class BackpackMod {
         ITEMS.register(modBus);
         MENUS.register(modBus);
         CREATIVE_TABS.register(modBus);
+        ModDataComponents.COMPONENTS.register(modBus);
 
         // Add backpack to TOOLS creative tab
         modBus.addListener(this::addToCreativeTabs);
