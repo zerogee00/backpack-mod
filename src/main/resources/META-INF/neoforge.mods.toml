@@ -8,20 +8,21 @@ modLoader = "javafml" #mandatory
 loaderVersion = "[4.0.31,)" #mandatory, "This is typically bumped every Minecraft version by Forge. See our download page for lists of versions."
 
 # A URL to refer people to when problems occur with this mod
-issuesURL = "https://github.com/user/backpack/issues" #optional
+displayURL="https://github.com/zerogee00/backpack-mod"
+issueTrackerURL="https://github.com/zerogee00/backpack-mod/issues"
 
 # The license this mods.toml is shipped under. Used to display in the license screen in the main menu.
 license = "MIT" #mandatory
 
 # The mods below are defined in individual [[mods]] blocks
 [[mods]] # Mod definitions
-modId = "backpack" #mandatory
-version = "0.1.0" #mandatory
-displayName = "Backpack" #mandatory
-authors = "You" #optional
-description = '''
-A simple backpack with crafting grid and storage.
-'''
+modId="backpack"
+# if you use Gradle to expand the jar version, keep this so it stays in sync
+version="${file.jarVersion}"
+displayName="Backpack"
+authors="DoktorOdd"
+# Optional: provide a 256x256-ish PNG if you want a logo on the Mods screen
+# logoFile="assets/backpack/textures/gui/logo.png"
 
 [[dependencies.backpack]] # A dependency on neoforge
 modId = "neoforge" #mandatory

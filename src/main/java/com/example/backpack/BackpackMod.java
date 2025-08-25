@@ -38,9 +38,13 @@ public class BackpackMod {
         ITEMS.register(modBus);
         MENUS.register(modBus);
         CREATIVE_TABS.register(modBus);
+        ModDataComponents.COMPONENTS.register(modBus);
 
         // Add backpack to TOOLS creative tab
         modBus.addListener(this::addToCreativeTabs);
+
+        // Register the dye event handler
+        new DyeOnUseHandler();
     }
 
     private void addToCreativeTabs(net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent event) {

@@ -11,7 +11,7 @@ java {
 }
 
 neoForge {
-    version = "21.1.77"
+    version = "21.1.203"
     validateAccessTransformers = true
 
     runs {
@@ -32,8 +32,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly "top.theillusivec4.curios:curios-neoforge:9.3.0+1.21.1:api"
-    runtimeOnly "top.theillusivec4.curios:curios-neoforge:9.3.0+1.21.1"
+    compileOnly "top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1:api"
+    runtimeOnly "top.theillusivec4.curios:curios-neoforge:9.5.1+1.21.1"
 }
 
 tasks.withType(JavaCompile).configureEach { options.encoding = "UTF-8" }
