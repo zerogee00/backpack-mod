@@ -22,6 +22,7 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import net.minecraft.ChatFormatting;
 
 public class BackpackRecipeBookPanel extends AbstractWidget {
 
@@ -33,7 +34,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     private static final int PANEL_HEIGHT = 200;
 
   // Recipe button area starts below search box
-  private static final int RECIPE_BUTTON_START_Y = 30;
+  private static final int RECIPE_BUTTON_START_Y = 30; // Back to original position
 
   private final BackpackScreen parentScreen;
   private final List<RecipeHolder<CraftingRecipe>> availableRecipes;
@@ -60,8 +61,12 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     // Initialize search box
     this.searchBox =
-        new EditBox(Minecraft.getInstance().font, 0, 0, PANEL_WIDTH - 20, 12,
+        new EditBox(Minecraft.getInstance().font, 0, 0, 70, 10,
                     Component.translatable("gui.recipe_book.search"));
+    this.searchBox.setValue(""); // Start with empty value
+    this.searchBox.setBordered(false); // Remove the grey border/background
+    this.searchBox.setMaxLength(50); // Set max length for search queries
+    this.searchBox.setCanLoseFocus(false); // Keep focus when clicking elsewhere
 
     // Initialize buttons
     this.craftButton =
@@ -221,9 +226,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       System.out.println("  Target X (left of backpack left edge with 8px spacing): " + targetX);
       System.out.println("  Final X: " + getX());
 
-      // Update search box position
-      searchBox.setX(getX() + 20);
-      searchBox.setY(getY() + 20);
+      // Update search box position - move it 70px right and 39px lower
+      searchBox.setX(getX() + 70); // Move 70px right from left edge
+      searchBox.setY(getY() + 39); // Move 39px down from top
 
       // Update button positions
       craftButton.setX(getX() + 20);
@@ -235,6 +240,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       nextPageButton.setX(getX() + PANEL_WIDTH - 35);
       nextPageButton.setY(getY() + PANEL_HEIGHT - 30);
 
+      // Focus the search box when opening
+      searchBox.setFocused(true);
+      
       // Refresh recipes when opening
       loadRecipes();
     }
@@ -258,6 +266,14 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     // Render search box
     searchBox.render(graphics, mouseX, mouseY, partialTick);
+    
+    // Render italic placeholder text if search box is empty
+    if (searchBox.getValue().isEmpty()) {
+      graphics.drawString(Minecraft.getInstance().font, 
+                         Component.literal("search").withStyle(ChatFormatting.ITALIC), 
+                         searchBox.getX() + 2, searchBox.getY() + 2, 
+                         0x707070, false);
+    }
 
     // Render buttons
     craftButton.render(graphics, mouseX, mouseY, partialTick);
@@ -363,7 +379,18 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     if (!isVisible)
       return false;
 
-    // Handle search box key input
+    // If search box is focused, handle all key input to prevent conflicts
+    if (searchBox.isFocused()) {
+      if (searchBox.keyPressed(keyCode, scanCode, modifiers)) {
+        searchQuery = searchBox.getValue();
+        createRecipeButtons();
+        return true;
+      }
+      // Even if the search box didn't handle it, consume the key to prevent inventory closing
+      return true;
+    }
+
+    // Handle search box key input when not focused
     if (searchBox.keyPressed(keyCode, scanCode, modifiers)) {
       searchQuery = searchBox.getValue();
       createRecipeButtons();
@@ -378,7 +405,19 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     if (!isVisible)
       return false;
 
-    // Handle search box character input
+    // If search box is focused, handle all character input to prevent conflicts
+    if (searchBox.isFocused()) {
+      if (searchBox.charTyped(codePoint, modifiers)) {
+        searchQuery = searchBox.getValue();
+        currentPage = 0; // Reset to first page when searching
+        createRecipeButtons();
+        return true;
+      }
+      // Even if the search box didn't handle it, consume the character to prevent inventory closing
+      return true;
+    }
+
+    // Handle search box character input when not focused
     if (searchBox.charTyped(codePoint, modifiers)) {
       searchQuery = searchBox.getValue();
       currentPage = 0; // Reset to first page when searching
@@ -506,9 +545,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
                                ", Icon: " + iconX + "," + iconY + " 17x17");
           }
 
-          // Draw a background for the icon area to make it visible
-          // Green background is now exactly 16x16 to match button size
-          graphics.fill(iconX, iconY, iconX + 17, iconY + 17, 0x8000FF00);
+          // Debug background removed for cleaner look
 
           // Render the item at the calculated position
           graphics.renderItem(result, iconX, iconY);
