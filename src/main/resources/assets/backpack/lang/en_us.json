@@ -4,5 +4,8 @@
   "item.backpack.tooltip.use": "Right-click to open",
   "item.backpack.tooltip.dye": "Sneak + Right-click with dye to color",
   "item.backpack.tooltip.clear_dye": "Sneak + Right-click with water to clear color",
-  "tooltip.backpack.dye_instruction": "Sneak + Use while holding a dye and backpack to dye it."
+  "tooltip.backpack.dye_instruction": "Sneak + Use while holding a dye and backpack to color it.",
+  "gui.recipe_book": "Recipe Book",
+  "gui.recipe_book.search": "Search recipes...",
+  "gui.recipe_book.craft": "Craft"
 }
