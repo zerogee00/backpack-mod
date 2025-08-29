@@ -76,7 +76,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
                        // TODO: Implement crafting logic
                        System.out.println("Craft button clicked!");
                      })
-            .bounds(0, 0, 40, 16)
+            .bounds(0, 0, 60, 20) // Vanilla button size
             .build();
 
     this.prevPageButton = Button
@@ -87,8 +87,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
                                            createRecipeButtons();
                                          }
                                        })
-                              .bounds(0, 0, 20, 16)
+                              .bounds(0, 0, 20, 20)
                               .build();
+    this.prevPageButton.setAlpha(0.0f); // Make completely invisible
 
     this.nextPageButton =
         Button
@@ -101,8 +102,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
                          createRecipeButtons();
                        }
                      })
-            .bounds(0, 0, 20, 16)
+            .bounds(0, 0, 20, 20)
             .build();
+    this.nextPageButton.setAlpha(0.0f); // Make completely invisible
 
     // Load available recipes
     loadRecipes();
@@ -231,18 +233,23 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       searchBox.setY(getY() + 39); // Move 39px down from top
 
       // Update button positions
-      craftButton.setX(getX() + 20);
-      craftButton.setY(getY() + PANEL_HEIGHT - 30);
-
-      prevPageButton.setX(getX() + PANEL_WIDTH - 60);
-      prevPageButton.setY(getY() + PANEL_HEIGHT - 30);
-
-      nextPageButton.setX(getX() + PANEL_WIDTH - 35);
-      nextPageButton.setY(getY() + PANEL_HEIGHT - 30);
+      // Craft button to the right of search bar
+      craftButton.setX(getX() + 150); // 70px (search bar X) + 70px (search bar width) + 10px spacing
+      craftButton.setY(getY() + 39); // Same Y as search bar
+      
+      // Page navigation centered under the grid
+      int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
+      int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px (was +15, now -5)
+      
+      prevPageButton.setX(pageNavCenterX - 50); // Left of center with more spacing
+      prevPageButton.setY(pageNavY);
+      
+      nextPageButton.setX(pageNavCenterX + 30); // Right of center with more spacing
+      nextPageButton.setY(pageNavY);
 
       // Focus the search box when opening
       searchBox.setFocused(true);
-      
+
       // Refresh recipes when opening
       loadRecipes();
     }
@@ -266,19 +273,39 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     // Render search box
     searchBox.render(graphics, mouseX, mouseY, partialTick);
-    
+
     // Render italic placeholder text if search box is empty
     if (searchBox.getValue().isEmpty()) {
-      graphics.drawString(Minecraft.getInstance().font, 
-                         Component.literal("search").withStyle(ChatFormatting.ITALIC), 
-                         searchBox.getX() + 2, searchBox.getY() + 2, 
+      graphics.drawString(Minecraft.getInstance().font,
+                         Component.literal("search").withStyle(ChatFormatting.ITALIC),
+                         searchBox.getX() + 2, searchBox.getY() + 2,
                          0x707070, false);
     }
 
     // Render buttons
     craftButton.render(graphics, mouseX, mouseY, partialTick);
-    prevPageButton.render(graphics, mouseX, mouseY, partialTick);
-    nextPageButton.render(graphics, mouseX, mouseY, partialTick);
+    
+    // Page navigation buttons are invisible - only custom arrows are rendered
+    
+    // Render custom brown arrows over the transparent buttons
+    int pageCount = (int)Math.ceil((double)availableRecipes.size() / RECIPES_PER_PAGE);
+    if (pageCount > 1) {
+      int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px
+      int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5;
+      
+      // Render darker brown arrows positioned on either side of the text
+      // Left arrow with white drop shadow
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"), 
+                         pageNavCenterX - 47, pageNavY + 13, 0xFFFFFF); // White drop shadow (moved left by 8px)
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"), 
+                         pageNavCenterX - 48, pageNavY + 12, 0xA0522D); // Main arrow (moved left by 8px)
+      
+      // Right arrow with white drop shadow
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"), 
+                         pageNavCenterX + 41, pageNavY + 13, 0xFFFFFF); // White drop shadow
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"), 
+                         pageNavCenterX + 40, pageNavY + 12, 0xA0522D); // Main arrow
+    }
 
     // Render recipe buttons
     for (RecipeButton button : recipeButtons) {
@@ -300,8 +327,16 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
         (int)Math.ceil((double)availableRecipes.size() / RECIPES_PER_PAGE);
     if (totalPages > 1) {
       String pageInfo = "Page " + (currentPage + 1) + " of " + totalPages;
-      graphics.drawString(Minecraft.getInstance().font, pageInfo, getX() + 20,
-                          getY() + PANEL_HEIGHT - 25, 0xFFFFFF);
+      // Center the page info between the navigation arrows
+      int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
+      int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px
+      int textWidth = Minecraft.getInstance().font.width(pageInfo);
+      // Render white drop shadow first
+      graphics.drawString(Minecraft.getInstance().font, pageInfo, 
+                         pageNavCenterX - (textWidth / 2) + 1, pageNavY + 13, 0xFFFFFF); // White drop shadow
+      // Render main text
+      graphics.drawString(Minecraft.getInstance().font, pageInfo, 
+                         pageNavCenterX - (textWidth / 2), pageNavY + 12, 0xA0522D); // Darker brown color
     }
 
     RenderSystem.disableBlend();
