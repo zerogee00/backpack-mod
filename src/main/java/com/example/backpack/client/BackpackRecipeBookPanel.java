@@ -145,33 +145,28 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     int endIndex =
         Math.min(startIndex + RECIPES_PER_PAGE, filteredRecipes.size());
 
-    // Create grid layout: 3 columns x 4 rows
-    // Use fixed 16x16 button size to match icon dimensions
-    int buttonWidth = 16; // Fixed width to match icon size
-    int totalMargins = 40; // 20px left + 20px right (adjusted for 200px panel)
-    int totalSpacing = (GRID_COLUMNS - 1) * 9; // 9px between each column for 5-column layout (increased by 1px)
-    int buttonHeight = 16; // Changed from 20 to 16 to match icon size (16x16)
-    int buttonSpacing = 5; // Reduced from 5px to 2px for tighter vertical spacing
+    // Create grid layout: 5 columns x 4 rows with proper spacing
+    int buttonWidth = 17; // Fixed width to match icon size (increased by 1px)
+    int buttonHeight = 17; // Fixed height to match icon size (increased by 1px)
+    int buttonSpacing = 5; // Consistent spacing between buttons (reduced from 8px to 5px)
 
-    // Adjust for the visual offset we observed
-    int iconOffsetX = 40; // Increased from 25 to 40 (moved right by 15px more)
-    int iconOffsetY = 16; // Changed from 14 to 16 (moved down by 2px)
+    // Calculate grid positioning to center it properly in the panel
+    int totalGridWidth = (GRID_COLUMNS * buttonWidth) + ((GRID_COLUMNS - 1) * buttonSpacing);
+    int gridStartX = (PANEL_WIDTH - totalGridWidth) / 2 + 12; // Center the grid horizontally + 12px right
+    int gridStartY = RECIPE_BUTTON_START_Y + 27; // Start 27px below the search box (10px + 17px down)
 
     for (int i = startIndex; i < endIndex; i++) {
       int row = (i - startIndex) / GRID_COLUMNS;
       int col = (i - startIndex) % GRID_COLUMNS;
 
-      // Position buttons relative to the panel, accounting for the visual
-      // offset and centering the grid
-      int totalGridWidth = (GRID_COLUMNS * buttonWidth) + ((GRID_COLUMNS - 1) * buttonSpacing);
-      int gridStartX = (PANEL_WIDTH - totalGridWidth) / 2;
-      int buttonX = gridStartX + (col * (buttonWidth + buttonSpacing)) + iconOffsetX;
-      int buttonY = RECIPE_BUTTON_START_Y +
-                    (row * (buttonHeight + buttonSpacing)) + iconOffsetY;
+      // Position buttons in a clean grid layout
+      // Spacing should only be between buttons, not added to each button position
+      int buttonX = gridStartX + (col * buttonWidth) + (col * buttonSpacing);
+      int buttonY = gridStartY + (row * buttonHeight) + (row * buttonSpacing);
 
       RecipeHolder<CraftingRecipe> recipeHolder = filteredRecipes.get(i);
       RecipeButton button = new RecipeButton(buttonX, buttonY, buttonWidth,
-                                             buttonHeight, recipeHolder, 0, 0);
+                                             buttonHeight, recipeHolder);
       recipeButtons.add(button);
 
       // Debug: Show first few button positions
@@ -190,12 +185,10 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
                            ", Spacing: " + buttonSpacing);
         System.out.println("Panel dimensions - Width: " + PANEL_WIDTH +
                            ", Height: " + PANEL_HEIGHT);
-        System.out.println(
-            "Total width needed: " +
-            (buttonWidth * GRID_COLUMNS + buttonSpacing * (GRID_COLUMNS - 1) + 20));
+        System.out.println("Total grid width: " + totalGridWidth + "px");
         System.out.println("Grid layout - Columns: " + GRID_COLUMNS + ", Rows: " + GRID_ROWS);
         System.out.println("Column spacing: " + buttonSpacing + "px");
-        System.out.println("Icon offset X: " + iconOffsetX + ", Icon offset Y: " + iconOffsetY);
+        System.out.println("Grid start position - X: " + gridStartX + ", Y: " + gridStartY);
   }
 
   public void setVisible(boolean visible) {
@@ -212,7 +205,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       int screenCenter = screenWidth / 2;
       int backpackCenter = screenCenter + 8; // Backpack is 8px right of center
       int backpackLeftEdge = backpackCenter - (parentScreen.getImageWidth() / 2);
-      
+
       // Position recipe book to the left of the backpack's left edge with minimal spacing
       // Ensure it's visible on screen by positioning it at least 10px from left edge
       int targetX = Math.max(10, backpackLeftEdge - PANEL_WIDTH - 8);
@@ -468,16 +461,11 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
   private class RecipeButton extends AbstractWidget {
     private final RecipeHolder<CraftingRecipe> recipeHolder;
-    private final int iconOffsetX;
-    private final int iconOffsetY;
 
     public RecipeButton(int x, int y, int width, int height,
-                        RecipeHolder<CraftingRecipe> recipeHolder,
-                        int iconOffsetX, int iconOffsetY) {
+                        RecipeHolder<CraftingRecipe> recipeHolder) {
       super(x, y, width, height, Component.empty());
       this.recipeHolder = recipeHolder;
-      this.iconOffsetX = iconOffsetX;
-      this.iconOffsetY = iconOffsetY;
     }
 
     @Override
@@ -515,12 +503,12 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
               0) { // Only log for first button to avoid spam
             System.out.println("First button - Button: " + getX() + "," +
                                getY() + " " + width + "x" + height +
-                               ", Icon: " + iconX + "," + iconY + " 16x16");
+                               ", Icon: " + iconX + "," + iconY + " 17x17");
           }
 
           // Draw a background for the icon area to make it visible
           // Green background is now exactly 16x16 to match button size
-          graphics.fill(iconX, iconY, iconX + 16, iconY + 16, 0x8000FF00);
+          graphics.fill(iconX, iconY, iconX + 17, iconY + 17, 0x8000FF00);
 
           // Render the item at the calculated position
           graphics.renderItem(result, iconX, iconY);
