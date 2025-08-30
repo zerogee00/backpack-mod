@@ -182,6 +182,12 @@ public class BackpackScreen extends AbstractContainerScreen<BackpackMenu> {
 
   @Override
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    // Handle escape key to close backpack
+    if (keyCode == 256) { // 256 is the key code for Escape
+      this.onClose();
+      return true;
+    }
+
     // Handle recipe book panel key input first
     if (this.recipeBookPanel != null && this.recipeBookPanel.isVisible()) {
       if (this.recipeBookPanel.keyPressed(keyCode, scanCode, modifiers)) {

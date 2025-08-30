@@ -1,12 +1,15 @@
 package com.example.backpack.client;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.example.backpack.menu.BackpackMenu;
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -22,13 +25,34 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
-import net.minecraft.ChatFormatting;
 
 public class BackpackRecipeBookPanel extends AbstractWidget {
 
   private static final ResourceLocation RECIPE_BOOK_TEXTURE =
       ResourceLocation.fromNamespaceAndPath("backpack",
                                             "textures/gui/recipe-book.png");
+
+  // Custom craftable overlay textures
+  private static final ResourceLocation CRAFTABLE_OVERLAY_CHECK =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/craftable-overlay_check.png");
+  private static final ResourceLocation CRAFTABLE_OVERLAY_X =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/craftable-overlay_x.png");
+
+  // Custom tab background textures
+  private static final ResourceLocation TAB_BACKGROUND_2 =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/recipe-tabs-2.png");
+  private static final ResourceLocation TAB_BACKGROUND_3 =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/recipe-tabs-3.png");
+  private static final ResourceLocation TAB_BACKGROUND_4 =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/recipe-tabs-4.png");
+  private static final ResourceLocation TAB_BACKGROUND_5 =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/recipe-tabs-5.png");
 
       private static final int PANEL_WIDTH = 200;
     private static final int PANEL_HEIGHT = 200;
@@ -52,6 +76,10 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
   private Button prevPageButton;
   private Button nextPageButton;
 
+  // Tab system
+  private List<TabButton> tabButtons;
+  private int selectedTab = 0; // 0 = All, 1 = Crafting, 2 = Smelting, etc.
+
   public BackpackRecipeBookPanel(BackpackScreen parentScreen) {
     super(0, 0, PANEL_WIDTH, PANEL_HEIGHT,
           Component.translatable("gui.recipe_book"));
@@ -71,13 +99,14 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     // Initialize buttons
     this.craftButton =
         Button
-            .builder(Component.translatable("gui.recipe_book.craft"),
+            .builder(Component.empty(), // No text, we'll render the icon manually
                      button -> {
-                       // TODO: Implement crafting logic
-                       System.out.println("Craft button clicked!");
+                       // Toggle craftable filter
+                       toggleCraftableFilter();
                      })
-            .bounds(0, 0, 60, 20) // Vanilla button size
+            .bounds(0, 0, 20, 20) // Square button for icon
             .build();
+    this.craftButton.setAlpha(0.0f); // Make completely invisible like other buttons
 
     this.prevPageButton = Button
                               .builder(Component.literal("←"),
@@ -95,8 +124,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
         Button
             .builder(Component.literal("→"),
                      button -> {
-                       int totalPages = (int)Math.ceil(
-                           (double)availableRecipes.size() / RECIPES_PER_PAGE);
+                       // Calculate total pages based on filtered recipes
+                       List<RecipeHolder<CraftingRecipe>> filteredRecipes = getFilteredRecipes();
+                       int totalPages = (int)Math.ceil((double)filteredRecipes.size() / RECIPES_PER_PAGE);
                        if (currentPage < totalPages - 1) {
                          currentPage++;
                          createRecipeButtons();
@@ -106,8 +136,164 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
             .build();
     this.nextPageButton.setAlpha(0.0f); // Make completely invisible
 
+    // Initialize tab buttons
+    this.tabButtons = new ArrayList<>();
+    createTabButtons();
+
     // Load available recipes
     loadRecipes();
+  }
+
+  private boolean showOnlyCraftable = false;
+
+  private List<RecipeHolder<CraftingRecipe>> getFilteredRecipes() {
+    return availableRecipes.stream()
+        .filter(
+            recipeHolder
+            -> (searchQuery.isEmpty() ||
+                   recipeHolder.value()
+                       .getResultItem(
+                           Minecraft.getInstance().level.registryAccess())
+                       .getDisplayName()
+                       .getString()
+                       .toLowerCase()
+                       .contains(searchQuery.toLowerCase())) &&
+               (!showOnlyCraftable || isRecipeCraftable(recipeHolder.value())) &&
+               isRecipeInSelectedCategory(recipeHolder.value()))
+        .collect(Collectors.toList());
+  }
+
+  private boolean isRecipeInSelectedCategory(CraftingRecipe recipe) {
+    if (selectedTab == 0) return true; // Search/All tab shows everything
+
+    ItemStack result = recipe.getResultItem(Minecraft.getInstance().level.registryAccess());
+    if (result.isEmpty()) return false;
+
+    String itemId = result.getItem().toString().toLowerCase();
+
+    switch (selectedTab) {
+      case 1: // Building tab - tools, weapons, armor (matches axe and sword icons)
+        return itemId.contains("axe") || itemId.contains("pickaxe") || itemId.contains("shovel") ||
+               itemId.contains("hoe") || itemId.contains("sword") || itemId.contains("bow") ||
+               itemId.contains("crossbow") || itemId.contains("arrow") || itemId.contains("helmet") ||
+               itemId.contains("chestplate") || itemId.contains("leggings") || itemId.contains("boots") ||
+               itemId.contains("shield") || itemId.contains("fishing_rod") || itemId.contains("shears") ||
+               itemId.contains("flint_and_steel") || itemId.contains("compass") || itemId.contains("clock");
+
+      case 2: // Tools tab - blocks, building materials (matches brick block icon)
+        return itemId.contains("block") || itemId.contains("planks") || itemId.contains("stone") ||
+               itemId.contains("brick") || itemId.contains("glass") || itemId.contains("wool") ||
+               itemId.contains("carpet") || itemId.contains("stairs") || itemId.contains("slab") ||
+               itemId.contains("fence") || itemId.contains("wall") || itemId.contains("door") ||
+               itemId.contains("trapdoor") || itemId.contains("gate") || itemId.contains("bed") ||
+               itemId.contains("chest") || itemId.contains("bookshelf") || itemId.contains("ladder");
+
+      case 3: // Equipment tab - food, buckets, containers (matches lava bucket and apple icons)
+        return itemId.contains("apple") || itemId.contains("bread") || itemId.contains("cake") ||
+               itemId.contains("cookie") || itemId.contains("bucket") || itemId.contains("bowl") ||
+               itemId.contains("bottle") || itemId.contains("potion") || itemId.contains("splash") ||
+               itemId.contains("lingering") || itemId.contains("saddle") || itemId.contains("name_tag") ||
+               itemId.contains("lead") || itemId.contains("minecart") || itemId.contains("boat") ||
+               itemId.contains("furnace_minecart") || itemId.contains("chest_minecart") || itemId.contains("hopper_minecart");
+
+      case 4: // Redstone tab - redstone components, mechanisms (matches redstone dust icon)
+        return itemId.contains("redstone") || itemId.contains("repeater") || itemId.contains("comparator") ||
+               itemId.contains("dispenser") || itemId.contains("dropper") || itemId.contains("hopper") ||
+               itemId.contains("piston") || itemId.contains("sticky_piston") || itemId.contains("observer") ||
+               itemId.contains("detector_rail") || itemId.contains("activator_rail") || itemId.contains("powered_rail") ||
+               itemId.contains("rail") || itemId.contains("lever") || itemId.contains("button") ||
+               itemId.contains("pressure_plate") || itemId.contains("tripwire_hook") || itemId.contains("daylight_detector") ||
+               itemId.contains("note_block") || itemId.contains("jukebox") || itemId.contains("tnt") ||
+               itemId.contains("tnt_minecart") || itemId.contains("command_block") || itemId.contains("structure_block");
+
+      default:
+        return true;
+    }
+  }
+
+  private void createTabButtons() {
+    tabButtons.clear();
+
+    // Create tab buttons with vanilla recipe book icons
+    // Search/All tab (Compass)
+    tabButtons.add(new TabButton(0, 0, 0, 20, 20,
+        new ItemStack(net.minecraft.world.item.Items.COMPASS), "Search"));
+
+    // Building tab (Axe and Gold Sword)
+    tabButtons.add(new TabButton(1, 0, 0, 20, 20,
+        new ItemStack(net.minecraft.world.item.Items.IRON_AXE),
+        new ItemStack(net.minecraft.world.item.Items.GOLDEN_SWORD), "Building"));
+
+    // Tools tab (Brick Block)
+    tabButtons.add(new TabButton(2, 0, 0, 20, 20,
+        new ItemStack(net.minecraft.world.item.Items.BRICKS), "Tools"));
+
+    // Equipment tab (Bucket of Lava and Apple)
+    tabButtons.add(new TabButton(3, 0, 0, 20, 20,
+        new ItemStack(net.minecraft.world.item.Items.LAVA_BUCKET),
+        new ItemStack(net.minecraft.world.item.Items.APPLE), "Equipment"));
+
+    // Redstone tab (Redstone Dust)
+    tabButtons.add(new TabButton(4, 0, 0, 20, 20,
+        new ItemStack(net.minecraft.world.item.Items.REDSTONE), "Redstone"));
+  }
+
+  private void toggleCraftableFilter() {
+    showOnlyCraftable = !showOnlyCraftable;
+    System.out.println("Craftable filter: " + (showOnlyCraftable ? "ON" : "OFF"));
+    currentPage = 0; // Reset to first page when filtering
+    createRecipeButtons();
+  }
+
+    private boolean isRecipeCraftable(CraftingRecipe recipe) {
+    // Check if the recipe can be crafted with available materials in inventory and backpack
+    BackpackMenu menu = parentScreen.getMenu();
+    if (menu == null) return false;
+
+    // Get all available items from inventory and backpack storage with quantities
+    Map<ItemStack, Integer> availableItems = new HashMap<>();
+
+    // Add items from player inventory (slots 9+ are player inventory)
+    for (int i = 9; i < menu.slots.size(); i++) {
+      ItemStack stack = menu.getSlot(i).getItem();
+      if (!stack.isEmpty()) {
+        // Use a key that ignores stack size for counting
+        ItemStack key = stack.copy();
+        key.setCount(1);
+        availableItems.merge(key, stack.getCount(), Integer::sum);
+      }
+    }
+
+        // Check if we have all required ingredients with sufficient quantities
+    // Count how many of each ingredient type we need
+    Map<Ingredient, Integer> requiredIngredients = new HashMap<>();
+
+    for (Ingredient ingredient : recipe.getIngredients()) {
+      if (ingredient.isEmpty()) continue;
+
+      // Count how many times this ingredient appears in the recipe
+      requiredIngredients.merge(ingredient, 1, Integer::sum);
+    }
+
+    // Check if we have enough of each required ingredient
+    for (Map.Entry<Ingredient, Integer> required : requiredIngredients.entrySet()) {
+      Ingredient ingredient = required.getKey();
+      int requiredCount = required.getValue();
+
+      // Count how many of this ingredient type we have
+      int availableCount = 0;
+      for (Map.Entry<ItemStack, Integer> entry : availableItems.entrySet()) {
+        if (ingredient.test(entry.getKey())) {
+          availableCount += entry.getValue();
+        }
+      }
+
+      if (availableCount < requiredCount) {
+        return false; // Not enough of this ingredient
+      }
+    }
+
+    return true; // All ingredients available in sufficient quantities
   }
 
   private void loadRecipes() {
@@ -131,19 +317,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
   private void createRecipeButtons() {
     recipeButtons.clear();
 
-    List<RecipeHolder<CraftingRecipe>> filteredRecipes =
-        availableRecipes.stream()
-            .filter(
-                recipeHolder
-                -> searchQuery.isEmpty() ||
-                       recipeHolder.value()
-                           .getResultItem(
-                               Minecraft.getInstance().level.registryAccess())
-                           .getDisplayName()
-                           .getString()
-                           .toLowerCase()
-                           .contains(searchQuery.toLowerCase()))
-            .collect(Collectors.toList());
+    List<RecipeHolder<CraftingRecipe>> filteredRecipes = getFilteredRecipes();
 
     System.out.println("Filtered recipes: " + filteredRecipes.size() +
                        " (search: '" + searchQuery + "')");
@@ -232,18 +406,49 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       searchBox.setX(getX() + 70); // Move 70px right from left edge
       searchBox.setY(getY() + 39); // Move 39px down from top
 
+                  // Update tab button positions - vertical tabs down the left side with fixed spacing
+      int tabX = getX() + 25; // 25px from left edge
+      int tabStartY = getY() + 30; // Start below the top area
+
+                        // Manually set each tab position to ensure exact spacing
+      tabButtons.get(0).setX(tabX + 2); // Compass tab (Tab 1) - move right by 2px
+      tabButtons.get(0).setY(tabStartY);
+      tabButtons.get(0).setSelected(0 == selectedTab);
+
+      tabButtons.get(1).setX(tabX); // Axe+Sword tab (Tab 2) - move right by 1px (was -1, now 0)
+      tabButtons.get(1).setY(tabStartY + 25); // Move up by 1px (was +26, now +25)
+      tabButtons.get(1).setSelected(1 == selectedTab);
+
+      tabButtons.get(2).setX(tabX + 2); // Bricks tab (Tab 3) - move right by 2px
+      tabButtons.get(2).setY(tabStartY + 49); // Move up by 1px (was +50, now +49)
+      tabButtons.get(2).setSelected(2 == selectedTab);
+
+      tabButtons.get(3).setX(tabX + 1); // Lava Bucket+Apple tab (Tab 4) - move right by 1px more (was 0, now +1)
+      tabButtons.get(3).setY(tabStartY + 73); // Move up by 1px (was +74, now +73)
+      tabButtons.get(3).setSelected(3 == selectedTab);
+
+      tabButtons.get(4).setX(tabX + 3); // Redstone tab (Tab 5) - keep at +3 (no change needed)
+      tabButtons.get(4).setY(tabStartY + 97); // Move down by 1px (was +96, now +97)
+      tabButtons.get(4).setSelected(4 == selectedTab);
+
+      // Debug: Show tab positions
+      System.out.println("Tab positions - Start Y: " + tabStartY);
+      for (int i = 0; i < tabButtons.size(); i++) {
+        System.out.println("Tab " + i + " - Position: (" + tabX + ", " + tabButtons.get(i).getY() + ")");
+      }
+
       // Update button positions
       // Craft button to the right of search bar
-      craftButton.setX(getX() + 150); // 70px (search bar X) + 70px (search bar width) + 10px spacing
-      craftButton.setY(getY() + 39); // Same Y as search bar
-      
+      craftButton.setX(getX() + 145); // 70px (search bar X) + 70px (search bar width) + 10px spacing - 8px left + 3px right
+      craftButton.setY(getY() + 34); // Same Y as search bar - 5px up
+
       // Page navigation centered under the grid
       int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
       int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px (was +15, now -5)
-      
+
       prevPageButton.setX(pageNavCenterX - 50); // Left of center with more spacing
       prevPageButton.setY(pageNavY);
-      
+
       nextPageButton.setX(pageNavCenterX + 30); // Right of center with more spacing
       nextPageButton.setY(pageNavY);
 
@@ -267,43 +472,69 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     RenderSystem.enableBlend();
 
-    // Render recipe book background
-    graphics.blit(RECIPE_BOOK_TEXTURE, getX(), getY(), 0, 0, PANEL_WIDTH,
+    // Render recipe book background based on selected tab
+    ResourceLocation backgroundTexture = RECIPE_BOOK_TEXTURE; // Default background
+
+    if (selectedTab > 0) {
+      switch (selectedTab) {
+        case 1: // Building tab
+          backgroundTexture = TAB_BACKGROUND_2;
+          break;
+        case 2: // Tools tab
+          backgroundTexture = TAB_BACKGROUND_3;
+          break;
+        case 3: // Equipment tab
+          backgroundTexture = TAB_BACKGROUND_4;
+          break;
+        case 4: // Redstone tab
+          backgroundTexture = TAB_BACKGROUND_5;
+          break;
+      }
+    }
+
+    graphics.blit(backgroundTexture, getX(), getY(), 0, 0, PANEL_WIDTH,
                   PANEL_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT);
 
     // Render search box
     searchBox.render(graphics, mouseX, mouseY, partialTick);
 
+
+
     // Render italic placeholder text if search box is empty
     if (searchBox.getValue().isEmpty()) {
       graphics.drawString(Minecraft.getInstance().font,
-                         Component.literal("search").withStyle(ChatFormatting.ITALIC),
+                         Component.literal("Search...").withStyle(ChatFormatting.ITALIC),
                          searchBox.getX() + 2, searchBox.getY() + 2,
                          0x707070, false);
     }
 
-    // Render buttons
-    craftButton.render(graphics, mouseX, mouseY, partialTick);
-    
+    // Store icon position for later use
+    int iconX = craftButton.getX() + 2;
+    int iconY = craftButton.getY() + 2;
+
+    // Render tab buttons
+    for (TabButton tab : tabButtons) {
+      tab.render(graphics, mouseX, mouseY, partialTick);
+    }
+
+    // Don't render button background - just render icon directly
+    // Note: Icon will be rendered AFTER overlays to ensure overlays appear on top
+
     // Page navigation buttons are invisible - only custom arrows are rendered
-    
+
     // Render custom brown arrows over the transparent buttons
     int pageCount = (int)Math.ceil((double)availableRecipes.size() / RECIPES_PER_PAGE);
     if (pageCount > 1) {
       int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px
       int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5;
-      
+
       // Render darker brown arrows positioned on either side of the text
-      // Left arrow with white drop shadow
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"), 
-                         pageNavCenterX - 47, pageNavY + 13, 0xFFFFFF); // White drop shadow (moved left by 8px)
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"), 
+      // Left arrow (no drop shadow)
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"),
                          pageNavCenterX - 48, pageNavY + 12, 0xA0522D); // Main arrow (moved left by 8px)
-      
-      // Right arrow with white drop shadow
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"), 
-                         pageNavCenterX + 41, pageNavY + 13, 0xFFFFFF); // White drop shadow
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"), 
+
+      // Right arrow (no drop shadow)
+      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"),
                          pageNavCenterX + 40, pageNavY + 12, 0xA0522D); // Main arrow
     }
 
@@ -322,21 +553,49 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       button.setY(originalY);
     }
 
-    // Render navigation info
+        // Render navigation info
+    // Calculate pages based on filtered recipes, not total available recipes
+    List<RecipeHolder<CraftingRecipe>> filteredRecipes = getFilteredRecipes();
+
     int totalPages =
-        (int)Math.ceil((double)availableRecipes.size() / RECIPES_PER_PAGE);
+        (int)Math.ceil((double)filteredRecipes.size() / RECIPES_PER_PAGE);
     if (totalPages > 1) {
-      String pageInfo = "Page " + (currentPage + 1) + " of " + totalPages;
+      String pageInfo = currentPage + 1 + "/" + totalPages;
       // Center the page info between the navigation arrows
       int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
       int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px
       int textWidth = Minecraft.getInstance().font.width(pageInfo);
-      // Render white drop shadow first
-      graphics.drawString(Minecraft.getInstance().font, pageInfo, 
-                         pageNavCenterX - (textWidth / 2) + 1, pageNavY + 13, 0xFFFFFF); // White drop shadow
-      // Render main text
-      graphics.drawString(Minecraft.getInstance().font, pageInfo, 
+      // Render main text (no drop shadow)
+      graphics.drawString(Minecraft.getInstance().font, pageInfo,
                          pageNavCenterX - (textWidth / 2), pageNavY + 12, 0xA0522D); // Darker brown color
+    }
+
+    // Render vanilla crafting table icon FIRST
+    System.out.println("DEBUG: Rendering crafting table icon at (" + iconX + ", " + iconY + ")");
+    ItemStack craftingTable = new ItemStack(net.minecraft.world.item.Items.CRAFTING_TABLE);
+    graphics.renderItem(craftingTable, iconX, iconY);
+    graphics.renderItemDecorations(Minecraft.getInstance().font, craftingTable, iconX, iconY);
+
+    // Render custom craftable overlays AFTER the icon so they appear on top
+    System.out.println("DEBUG: Rendering craftable overlays - showOnlyCraftable: " + showOnlyCraftable);
+    System.out.println("DEBUG: Icon position - X: " + iconX + ", Y: " + iconY);
+    System.out.println("DEBUG: CRAFTABLE_OVERLAY_CHECK: " + CRAFTABLE_OVERLAY_CHECK);
+    System.out.println("DEBUG: CRAFTABLE_OVERLAY_X: " + CRAFTABLE_OVERLAY_X);
+    
+    if (showOnlyCraftable) {
+      // Draw check overlay when filter is active (showing only craftable recipes)
+      System.out.println("DEBUG: Drawing check overlay at (" + iconX + ", " + iconY + ")");
+      // Use a green dye as a checkmark (green = good/craftable)
+      ItemStack checkOverlay = new ItemStack(net.minecraft.world.item.Items.GREEN_DYE);
+      graphics.renderItem(checkOverlay, iconX, iconY);
+      graphics.renderItemDecorations(Minecraft.getInstance().font, checkOverlay, iconX, iconY);
+    } else {
+      // Draw X overlay when filter is inactive (showing all recipes)
+      System.out.println("DEBUG: Drawing X overlay at (" + iconX + ", " + iconY + ")");
+      // Use a red dye as an X mark (red = bad/not craftable)
+      ItemStack xOverlay = new ItemStack(net.minecraft.world.item.Items.RED_DYE);
+      graphics.renderItem(xOverlay, iconX, iconY);
+      graphics.renderItemDecorations(Minecraft.getInstance().font, xOverlay, iconX, iconY);
     }
 
     RenderSystem.disableBlend();
@@ -350,6 +609,13 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     // Check if click is within panel bounds
     if (mouseX >= getX() && mouseX < getX() + PANEL_WIDTH && mouseY >= getY() &&
         mouseY < getY() + PANEL_HEIGHT) {
+
+      // Handle tab button clicks
+      for (TabButton tab : tabButtons) {
+        if (tab.mouseClicked(mouseX, mouseY, button)) {
+          return true;
+        }
+      }
 
       // Handle search box clicks
       if (searchBox.mouseClicked(mouseX, mouseY, button)) {
@@ -413,6 +679,12 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
   public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
     if (!isVisible)
       return false;
+
+    // Handle escape key to close recipe book
+    if (keyCode == 256) { // 256 is the key code for Escape
+      setVisible(false);
+      return true;
+    }
 
     // If search box is focused, handle all key input to prevent conflicts
     if (searchBox.isFocused()) {
@@ -510,23 +782,14 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       }
     }
 
-    // Also place the result item in the result slot (slot 0)
+    // Place the result item in the result slot (slot 0) only
     ItemStack result =
         recipe.getResultItem(Minecraft.getInstance().level.registryAccess());
     if (!result.isEmpty()) {
-      // Try to set the result in the result slot
-      try {
-        menu.getSlot(0).set(result.copy());
-        System.out.println("Placed result " +
-                           result.getDisplayName().getString() +
-                           " in result slot");
-      } catch (Exception e) {
-        System.out.println("Failed to place result in slot 0: " +
-                           e.getMessage());
-        // Fallback: place in first crafting slot
-        menu.getSlot(1).set(result.copy());
-        System.out.println("Placed result in crafting slot 1 as fallback");
-      }
+      menu.getSlot(0).set(result.copy());
+      System.out.println("Placed result " +
+                         result.getDisplayName().getString() +
+                         " in result slot");
     }
 
     System.out.println(
@@ -545,21 +808,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     @Override
     public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY,
                              float partialTick) {
-      // Render recipe button background with a more visible border for
-      // debugging
-      int color = isHovered() ? 0x80FFFFFF : 0x40FFFFFF;
+      // Render recipe button background - subtle hover effect only
+      int color = isHovered() ? 0x40FFFFFF : 0x20FFFFFF;
       graphics.fill(getX(), getY(), getX() + width, getY() + height, color);
-
-      // Draw a border around the button to make the size visible
-      // Make borders 1px bigger than the 16x16 squares (17x17) and only 1px thick
-      graphics.fill(getX() - 1, getY() - 1, getX() + width + 1, getY(),
-                    0xFFFF0000); // Top border (1px thick, 1px above)
-      graphics.fill(getX() - 1, getY() + height, getX() + width + 1,
-                    getY() + height + 1, 0xFFFF0000); // Bottom border (1px thick, 1px below)
-      graphics.fill(getX() - 1, getY() - 1, getX(),
-                    getY() + height + 1, 0xFFFF0000); // Left border (1px thick, 1px left)
-      graphics.fill(getX() + width, getY() - 1, getX() + width + 1,
-                    getY() + height + 1, 0xFFFF0000); // Right border (1px thick, 1px right)
 
       // Render recipe result item (icon only, no text)
       Level level = Minecraft.getInstance().level;
@@ -571,14 +822,6 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
           // Since button is now exactly 16x16, icon is perfectly centered
           int iconX = getX();
           int iconY = getY();
-
-          // Debug: Log the button and icon dimensions
-          if (recipeButtons.indexOf(this) ==
-              0) { // Only log for first button to avoid spam
-            System.out.println("First button - Button: " + getX() + "," +
-                               getY() + " " + width + "x" + height +
-                               ", Icon: " + iconX + "," + iconY + " 17x17");
-          }
 
           // Debug background removed for cleaner look
 
@@ -602,6 +845,71 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     @Override
     protected void
     updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
+      // Narration support for accessibility
+    }
+  }
+
+  private class TabButton extends AbstractWidget {
+    private final int tabId;
+    private final ItemStack icon1;
+    private final ItemStack icon2; // Second icon for tabs that need two items
+    private final String label;
+    private boolean isSelected = false;
+
+    public TabButton(int tabId, int x, int y, int width, int height, ItemStack icon, String label) {
+      super(x, y, width, height, Component.literal(label));
+      this.tabId = tabId;
+      this.icon1 = icon;
+      this.icon2 = null;
+      this.label = label;
+    }
+
+    public TabButton(int tabId, int x, int y, int width, int height, ItemStack icon1, ItemStack icon2, String label) {
+      super(x, y, width, height, Component.literal(label));
+      this.tabId = tabId;
+      this.icon1 = icon1;
+      this.icon2 = icon2;
+      this.label = label;
+    }
+
+    public void setSelected(boolean selected) {
+      this.isSelected = selected;
+    }
+
+    public int getTabId() {
+      return tabId;
+    }
+
+            @Override
+    public void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+      // Render icon(s) in the tab - no background since we use full GUI backgrounds
+      if (icon2 != null) {
+        // Render two icons side by side with more spacing, moved left by 4px total
+        graphics.renderItem(icon1, getX() - 3, getY() + 2);
+        graphics.renderItemDecorations(Minecraft.getInstance().font, icon1, getX() - 3, getY() + 2);
+        graphics.renderItem(icon2, getX() + 9, getY() + 2);
+        graphics.renderItemDecorations(Minecraft.getInstance().font, icon2, getX() + 9, getY() + 2);
+      } else {
+        // Render single icon centered
+        graphics.renderItem(icon1, getX() + 2, getY() + 2);
+        graphics.renderItemDecorations(Minecraft.getInstance().font, icon1, getX() + 2, getY() + 2);
+      }
+    }
+
+    @Override
+    public void onClick(double mouseX, double mouseY) {
+      selectedTab = tabId;
+      currentPage = 0; // Reset to first page when changing tabs
+      createRecipeButtons();
+
+      // Update all tab selections
+      for (TabButton tab : tabButtons) {
+        tab.setSelected(tab.getTabId() == selectedTab);
+      }
+    }
+
+    @Override
+    protected void updateWidgetNarration(NarrationElementOutput narrationElementOutput) {
       // Narration support for accessibility
     }
   }
