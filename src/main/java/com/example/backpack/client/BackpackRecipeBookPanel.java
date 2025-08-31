@@ -25,6 +25,8 @@ import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.Container;
+import net.minecraft.world.inventory.Slot;
 
 public class BackpackRecipeBookPanel extends AbstractWidget {
 
@@ -54,12 +56,22 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       ResourceLocation.fromNamespaceAndPath("backpack",
                                             "textures/gui/recipe-tabs-5.png");
 
-      private static final int PANEL_WIDTH = 200;
-    private static final int PANEL_HEIGHT = 200;
+  // Navigation and search assets
+  private static final ResourceLocation LEFT_ARROW_TEXTURE =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/left-arrow.png");
+  private static final ResourceLocation RIGHT_ARROW_TEXTURE =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/right-arrow.png");
+  private static final ResourceLocation MAGNIFYING_GLASS_TEXTURE =
+      ResourceLocation.fromNamespaceAndPath("backpack",
+                                            "textures/gui/magnifying_glass.png");
+
+  private static final int PANEL_WIDTH = 200;
+  private static final int PANEL_HEIGHT = 200;
 
   // Recipe button area starts below search box
-  private static final int RECIPE_BUTTON_START_Y = 30; // Back to original position
-
+  private static final int RECIPE_BUTTON_START_Y = 30;
   private final BackpackScreen parentScreen;
   private final List<RecipeHolder<CraftingRecipe>> availableRecipes;
   private final List<RecipeButton> recipeButtons;
@@ -67,9 +79,9 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
   private String searchQuery = "";
   private boolean isVisible = false;
   private int currentPage = 0;
-      private static final int RECIPES_PER_PAGE = 20; // 5 columns × 4 rows
-      private static final int GRID_COLUMNS = 5;
-    private static final int GRID_ROWS = 4;
+  private static final int RECIPES_PER_PAGE = 20; // 5 columns × 4 rows
+  private static final int GRID_COLUMNS = 5;
+  private static final int GRID_ROWS = 4;
 
   // UI Elements
   private Button craftButton;
@@ -78,7 +90,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
   // Tab system
   private List<TabButton> tabButtons;
-  private int selectedTab = 0; // 0 = All, 1 = Crafting, 2 = Smelting, etc.
+  private int selectedTab = 0; // 0 = All, 1 = Weapons, 2 = Building, 3 = Equipment, 4 = Redstone
 
   public BackpackRecipeBookPanel(BackpackScreen parentScreen) {
     super(0, 0, PANEL_WIDTH, PANEL_HEIGHT,
@@ -109,7 +121,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     this.craftButton.setAlpha(0.0f); // Make completely invisible like other buttons
 
     this.prevPageButton = Button
-                              .builder(Component.literal("←"),
+                              .builder(Component.empty(), // No text, we'll render the icon manually
                                        button -> {
                                          if (currentPage > 0) {
                                            currentPage--;
@@ -122,7 +134,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     this.nextPageButton =
         Button
-            .builder(Component.literal("→"),
+            .builder(Component.empty(), // No text, we'll render the icon manually
                      button -> {
                        // Calculate total pages based on filtered recipes
                        List<RecipeHolder<CraftingRecipe>> filteredRecipes = getFilteredRecipes();
@@ -253,8 +265,8 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     // Get all available items from inventory and backpack storage with quantities
     Map<ItemStack, Integer> availableItems = new HashMap<>();
 
-    // Add items from player inventory (slots 9+ are player inventory)
-    for (int i = 9; i < menu.slots.size(); i++) {
+    // Add items from player inventory (slots 37+ are player inventory)
+    for (int i = 37; i < menu.slots.size(); i++) {
       ItemStack stack = menu.getSlot(i).getItem();
       if (!stack.isEmpty()) {
         // Use a key that ignores stack size for counting
@@ -336,6 +348,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     int gridStartX = (PANEL_WIDTH - totalGridWidth) / 2 + 12; // Center the grid horizontally + 12px right
     int gridStartY = RECIPE_BUTTON_START_Y + 27; // Start 27px below the search box (10px + 17px down)
 
+    // Only create buttons for recipes that exist
     for (int i = startIndex; i < endIndex; i++) {
       int row = (i - startIndex) / GRID_COLUMNS;
       int col = (i - startIndex) % GRID_COLUMNS;
@@ -402,8 +415,8 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       System.out.println("  Target X (left of backpack left edge with 8px spacing): " + targetX);
       System.out.println("  Final X: " + getX());
 
-      // Update search box position - move it 70px right and 39px lower
-      searchBox.setX(getX() + 70); // Move 70px right from left edge
+      // Update search box position - move it 70px right and 39px lower to make room for magnifying glass
+      searchBox.setX(getX() + 70); // Move 70px right from left edge (was 60px, now 70px to move everything right by 10px)
       searchBox.setY(getY() + 39); // Move 39px down from top
 
                   // Update tab button positions - vertical tabs down the left side with fixed spacing
@@ -446,11 +459,11 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
       int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px (was +15, now -5)
 
-      prevPageButton.setX(pageNavCenterX - 50); // Left of center with more spacing
-      prevPageButton.setY(pageNavY);
+      prevPageButton.setX(pageNavCenterX - 33); // Match visual arrow position
+      prevPageButton.setY(pageNavY + 5); // Match visual arrow position
 
-      nextPageButton.setX(pageNavCenterX + 30); // Right of center with more spacing
-      nextPageButton.setY(pageNavY);
+      nextPageButton.setX(pageNavCenterX + 19); // Match visual arrow position (moved left by 3px)
+      nextPageButton.setY(pageNavY + 5); // Match visual arrow position
 
       // Focus the search box when opening
       searchBox.setFocused(true);
@@ -495,10 +508,11 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     graphics.blit(backgroundTexture, getX(), getY(), 0, 0, PANEL_WIDTH,
                   PANEL_HEIGHT, PANEL_WIDTH, PANEL_HEIGHT);
 
+    // Render magnifying glass icon to the left of search box
+    graphics.blit(MAGNIFYING_GLASS_TEXTURE, searchBox.getX() - 18, searchBox.getY() - 2, 0, 0, 16, 16, 16, 16);
+
     // Render search box
     searchBox.render(graphics, mouseX, mouseY, partialTick);
-
-
 
     // Render italic placeholder text if search box is empty
     if (searchBox.getValue().isEmpty()) {
@@ -522,25 +536,23 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
 
     // Page navigation buttons are invisible - only custom arrows are rendered
 
-    // Render custom brown arrows over the transparent buttons
+    // Render custom arrow images over the transparent buttons
     int pageCount = (int)Math.ceil((double)availableRecipes.size() / RECIPES_PER_PAGE);
     if (pageCount > 1) {
       int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px
       int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5;
 
-      // Render darker brown arrows positioned on either side of the text
-      // Left arrow (no drop shadow)
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("←"),
-                         pageNavCenterX - 48, pageNavY + 12, 0xA0522D); // Main arrow (moved left by 8px)
+      // Render arrow images positioned on either side of the text
+      // Left arrow
+      graphics.blit(LEFT_ARROW_TEXTURE, pageNavCenterX - 29, pageNavY + 10, 0, 0, 10, 10, 10, 10);
 
-      // Right arrow (no drop shadow)
-      graphics.drawString(Minecraft.getInstance().font, Component.literal("→"),
-                         pageNavCenterX + 40, pageNavY + 12, 0xA0522D); // Main arrow
+      // Right arrow
+      graphics.blit(RIGHT_ARROW_TEXTURE, pageNavCenterX + 19, pageNavY + 10, 0, 0, 10, 10, 10, 10);
     }
 
     // Render recipe buttons
     for (RecipeButton button : recipeButtons) {
-      // Temporarily adjust button position for rendering
+      // Temporarily   adjust button position for rendering
       int originalX = button.getX();
       int originalY = button.getY();
       button.setX(getX() + originalX);
@@ -553,7 +565,7 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
       button.setY(originalY);
     }
 
-        // Render navigation info
+    // Render navigation info
     // Calculate pages based on filtered recipes, not total available recipes
     List<RecipeHolder<CraftingRecipe>> filteredRecipes = getFilteredRecipes();
 
@@ -562,40 +574,35 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     if (totalPages > 1) {
       String pageInfo = currentPage + 1 + "/" + totalPages;
       // Center the page info between the navigation arrows
-      int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10; // Move left by 10px (was +20, now +10)
-      int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5; // Raise by 20px
+      int pageNavCenterX = getX() + (PANEL_WIDTH / 2) + 10;
+      int pageNavY = getY() + RECIPE_BUTTON_START_Y + 27 + (GRID_ROWS * (17 + 5)) - 5;
       int textWidth = Minecraft.getInstance().font.width(pageInfo);
       // Render main text (no drop shadow)
       graphics.drawString(Minecraft.getInstance().font, pageInfo,
-                         pageNavCenterX - (textWidth / 2), pageNavY + 12, 0xA0522D); // Darker brown color
+                         pageNavCenterX - (textWidth / 2), pageNavY + 10, 0x5c4122); // Custom brown color
     }
 
     // Render vanilla crafting table icon FIRST
-    System.out.println("DEBUG: Rendering crafting table icon at (" + iconX + ", " + iconY + ")");
     ItemStack craftingTable = new ItemStack(net.minecraft.world.item.Items.CRAFTING_TABLE);
     graphics.renderItem(craftingTable, iconX, iconY);
     graphics.renderItemDecorations(Minecraft.getInstance().font, craftingTable, iconX, iconY);
 
-    // Render custom craftable overlays AFTER the icon so they appear on top
-    System.out.println("DEBUG: Rendering craftable overlays - showOnlyCraftable: " + showOnlyCraftable);
-    System.out.println("DEBUG: Icon position - X: " + iconX + ", Y: " + iconY);
-    System.out.println("DEBUG: CRAFTABLE_OVERLAY_CHECK: " + CRAFTABLE_OVERLAY_CHECK);
-    System.out.println("DEBUG: CRAFTABLE_OVERLAY_X: " + CRAFTABLE_OVERLAY_X);
-    
     if (showOnlyCraftable) {
+      // Disable depth test to show overlay always on top
+      RenderSystem.disableDepthTest();
       // Draw check overlay when filter is active (showing only craftable recipes)
-      System.out.println("DEBUG: Drawing check overlay at (" + iconX + ", " + iconY + ")");
-      // Use a green dye as a checkmark (green = good/craftable)
-      ItemStack checkOverlay = new ItemStack(net.minecraft.world.item.Items.GREEN_DYE);
-      graphics.renderItem(checkOverlay, iconX, iconY);
-      graphics.renderItemDecorations(Minecraft.getInstance().font, checkOverlay, iconX, iconY);
+      // Use the check overlay texture
+      graphics.blit(CRAFTABLE_OVERLAY_CHECK, iconX - 5, iconY - 3, 0, 0, 10, 10, 10, 10);
+      // Re-enable depth test
+      RenderSystem.enableDepthTest();
     } else {
       // Draw X overlay when filter is inactive (showing all recipes)
-      System.out.println("DEBUG: Drawing X overlay at (" + iconX + ", " + iconY + ")");
-      // Use a red dye as an X mark (red = bad/not craftable)
-      ItemStack xOverlay = new ItemStack(net.minecraft.world.item.Items.RED_DYE);
-      graphics.renderItem(xOverlay, iconX, iconY);
-      graphics.renderItemDecorations(Minecraft.getInstance().font, xOverlay, iconX, iconY);
+      // Disable depth test to show overlay always on top
+      RenderSystem.disableDepthTest();
+      // Use the X overlay texture
+      graphics.blit(CRAFTABLE_OVERLAY_X, iconX - 5, iconY - 3, 0, 0, 10, 10, 10, 10);
+      // Re-enable depth test
+      RenderSystem.enableDepthTest();
     }
 
     RenderSystem.disableBlend();
@@ -755,45 +762,68 @@ public class BackpackRecipeBookPanel extends AbstractWidget {
     BackpackMenu menu = parentScreen.getMenu();
     System.out.println("Got menu: " + menu);
 
+    // Get the craftMatrix container directly from the menu
+    Container craftMatrix = menu.getCraftMatrix();
+    if (craftMatrix == null) {
+      System.out.println("ERROR: Could not get craftMatrix from menu");
+      return;
+    }
+
     // Clear the current crafting grid
     for (int i = 0; i < 9; i++) {
-      menu.getSlot(i + 1).set(
-          ItemStack.EMPTY); // +1 because slot 0 is the result
+      craftMatrix.setItem(i, ItemStack.EMPTY);
     }
 
     // Get the recipe ingredients
     List<Ingredient> ingredients = recipe.getIngredients();
     System.out.println("Recipe has " + ingredients.size() + " ingredients");
 
-    // Fill the crafting grid with ingredients
+    // Fill the crafting grid with ingredients from player's inventory
     for (int i = 0; i < Math.min(ingredients.size(), 9); i++) {
       Ingredient ingredient = ingredients.get(i);
       if (ingredient != null && !ingredient.isEmpty()) {
-        // Get the first matching item stack for this ingredient
-        ItemStack[] matchingStacks = ingredient.getItems();
-        if (matchingStacks.length > 0) {
-          ItemStack ingredientStack = matchingStacks[0].copy();
-          ingredientStack.setCount(1); // Set count to 1 for crafting
-          menu.getSlot(i + 1).set(ingredientStack);
-          System.out.println("Placed ingredient " +
-                             ingredientStack.getDisplayName().getString() +
-                             " in slot " + (i + 1));
+        // Find a matching item in the player's inventory or backpack
+        ItemStack matchingItem = findMatchingItem(ingredient, menu);
+        if (!matchingItem.isEmpty()) {
+          // Move the item to the crafting grid
+          craftMatrix.setItem(i, matchingItem.copy());
+          System.out.println("Moved ingredient " +
+                             matchingItem.getDisplayName().getString() +
+                             " to crafting slot " + i);
+        } else {
+          System.out.println("No matching ingredient found for slot " + i);
         }
       }
     }
 
-    // Place the result item in the result slot (slot 0) only
-    ItemStack result =
-        recipe.getResultItem(Minecraft.getInstance().level.registryAccess());
-    if (!result.isEmpty()) {
-      menu.getSlot(0).set(result.copy());
-      System.out.println("Placed result " +
-                         result.getDisplayName().getString() +
-                         " in result slot");
+    // Trigger the menu's slotsChanged method to update the crafting result
+    menu.slotsChanged(craftMatrix);
+
+    // Don't set the result directly - let the normal crafting logic handle it
+    // The onCraftMatrixChanged() method will be called automatically when ingredients are placed
+    // and it will calculate and set the result if there's a valid recipe match
+
+    System.out.println("Filled crafting grid with recipe ingredients - result will be calculated automatically");
+  }
+
+  private ItemStack findMatchingItem(Ingredient ingredient, BackpackMenu menu) {
+    // First check player inventory (slots 37-72)
+    for (int i = 37; i < menu.slots.size(); i++) {
+      ItemStack stack = menu.getSlot(i).getItem();
+      if (!stack.isEmpty() && ingredient.test(stack)) {
+        return stack;
+      }
     }
 
-    System.out.println(
-        "Filled crafting grid with recipe ingredients and result");
+    // Then check backpack storage (slots 10-36)
+    for (int i = 10; i < 37; i++) {
+      ItemStack stack = menu.getSlot(i).getItem();
+      if (!stack.isEmpty() && ingredient.test(stack)) {
+        return stack;
+      }
+    }
+
+    return ItemStack.EMPTY;
   }
 
   private class RecipeButton extends AbstractWidget {
