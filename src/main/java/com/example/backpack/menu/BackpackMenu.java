@@ -11,6 +11,13 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.*;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.item.crafting.RecipeType;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.Ingredient;
+
+import java.util.List;
 
 /**
  * Backpack container menu:
@@ -68,6 +75,16 @@ public class BackpackMenu extends AbstractContainerMenu {
   private final Container craftMatrix = new SimpleContainer(9);
   private final Container craftResult = new SimpleContainer(1);
 
+  // Getter for craftMatrix to allow recipe book panel to access it
+  public Container getCraftMatrix() {
+    return craftMatrix;
+  }
+
+  // Getter for craftResult to allow recipe book panel to access it
+  public Container getCraftResult() {
+    return craftResult;
+  }
+
   // the backpack's 27-slot storage
   private final Container backpackInv;
 
@@ -94,10 +111,39 @@ public class BackpackMenu extends AbstractContainerMenu {
     // Load backpack storage from the item stack
     this.backpackInv = BackpackItem.getBackpackStorage(backpackStack);
 
-    this.addSlot(new Slot(this.craftResult, RESULT_SLOT, RESULT_X, RESULT_Y) {
+        this.addSlot(new Slot(this.craftResult, RESULT_SLOT, RESULT_X, RESULT_Y) {
       @Override
       public boolean mayPlace(ItemStack stack) {
         return false; // Result slot cannot accept items
+      }
+
+      @Override
+      public boolean mayPickup(Player player) {
+        return true; // Result slot can be picked up from
+      }
+
+      @Override
+      public void onTake(Player player, ItemStack stack) {
+        // When item is taken from result slot, consume ingredients
+        super.onTake(player, stack);
+
+        // Consume one of each ingredient from the crafting grid
+        for (int i = 0; i < 9; i++) {
+          ItemStack ingredient = craftMatrix.getItem(i);
+          if (!ingredient.isEmpty()) {
+            ingredient.shrink(1);
+            craftMatrix.setItem(i, ingredient.isEmpty() ? ItemStack.EMPTY : ingredient);
+          }
+        }
+
+        // Clear the result slot
+        craftResult.setItem(0, ItemStack.EMPTY);
+      }
+
+      @Override
+      public void setChanged() {
+        super.setChanged();
+        System.out.println("Result slot setChanged called - has item: " + !getItem().isEmpty());
       }
     });
 
@@ -152,10 +198,73 @@ public class BackpackMenu extends AbstractContainerMenu {
   }
 
   private void onCraftMatrixChanged() {
-    // For now, disable crafting until we implement proper recipe handling
-    // TODO: Implement proper crafting logic
     System.out.println("Crafting matrix changed!");
-    this.craftResult.setItem(0, ItemStack.EMPTY);
+
+    // Check if we have a valid recipe match
+    if (this.level != null) {
+      RecipeManager recipeManager = this.level.getRecipeManager();
+
+      // Get all crafting recipes and find one that matches
+      List<RecipeHolder<CraftingRecipe>> allRecipes = recipeManager.getAllRecipesFor(RecipeType.CRAFTING);
+      CraftingRecipe matchingRecipe = null;
+
+      for (RecipeHolder<CraftingRecipe> recipeHolder : allRecipes) {
+        if (recipeMatchesMatrix(recipeHolder.value())) {
+          matchingRecipe = recipeHolder.value();
+          break;
+        }
+      }
+
+      if (matchingRecipe != null) {
+        // We have a valid recipe, set the result
+        ItemStack result = matchingRecipe.getResultItem(this.level.registryAccess());
+        this.craftResult.setItem(0, result);
+        System.out.println("Recipe matched! Result: " + result.getDisplayName().getString());
+      } else {
+        // No recipe matches, clear the result slot
+        this.craftResult.setItem(0, ItemStack.EMPTY);
+        System.out.println("No recipe matches current crafting matrix");
+      }
+    } else {
+      // No level available, clear the result slot
+      this.craftResult.setItem(0, ItemStack.EMPTY);
+    }
+  }
+
+  private boolean recipeMatchesMatrix(CraftingRecipe recipe) {
+    // Get the recipe ingredients
+    List<Ingredient> ingredients = recipe.getIngredients();
+    System.out.println("Checking if recipe matches matrix: " + recipe.getResultItem(this.level.registryAccess()).getDisplayName().getString());
+    System.out.println("Recipe has " + ingredients.size() + " ingredients");
+
+    // Check if the crafting matrix matches the recipe pattern
+    for (int i = 0; i < 9; i++) {
+      ItemStack matrixItem = this.craftMatrix.getItem(i);
+      Ingredient requiredIngredient = i < ingredients.size() ? ingredients.get(i) : null;
+
+      if (requiredIngredient != null && !requiredIngredient.isEmpty()) {
+        // This slot should have an ingredient
+        if (matrixItem.isEmpty()) {
+          System.out.println("Slot " + i + " should have ingredient but is empty");
+          return false; // Ingredient doesn't match
+        }
+        if (!requiredIngredient.test(matrixItem)) {
+          System.out.println("Slot " + i + " has " + matrixItem.getDisplayName().getString() + " but needs " + requiredIngredient);
+          return false; // Ingredient doesn't match
+        }
+        System.out.println("Slot " + i + " matches: " + matrixItem.getDisplayName().getString());
+      } else {
+        // This slot should be empty
+        if (!matrixItem.isEmpty()) {
+          System.out.println("Slot " + i + " should be empty but has " + matrixItem.getDisplayName().getString());
+          return false; // Slot should be empty but has an item
+        }
+        System.out.println("Slot " + i + " is correctly empty");
+      }
+    }
+
+    System.out.println("Recipe matches crafting matrix!");
+    return true; // All ingredients match
   }
 
   @Override
@@ -203,7 +312,7 @@ public class BackpackMenu extends AbstractContainerMenu {
     if (clickedIndex == RESULT_SLOT) {
       if (!this.moveItemStackTo(stack, INV_FIRST, HOT_LAST, true))
         return ItemStack.EMPTY;
-      clicked.onQuickCraft(stack, old);
+      clicked.onTake(player, stack);
     }
     // 2) Click in backpack storage -> player inventory/hotbar
     else if (clickedIndex >= PACK_FIRST && clickedIndex <= PACK_LAST) {
